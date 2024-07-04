@@ -1,10 +1,3 @@
-//with enter and without enter
-//rewrite function (check if there is anything that can be removed from the getConnected pipe)
-
-//check for number or letter or asterisk, then check if the length of the array is 3(if so send that array to the matrix then trigger a recursion)
-//store the processed indexes and trigger the recursion with the next index
-
-//--------------------------
 //this app works with nde v16 or higher
 //the logic of this app consists of 5 steps
 //Step1: determine what the app considers to be a pipe, by storing all options for pipes in the mappedPipes object
@@ -486,3 +479,13 @@ const sinkSystem = (filePath) => {
     return finalAnswer.split('').sort().join('');
   }
 };
+
+console.log(sinkSystem('./testData/dataABG.txt'));
+console.log(sinkSystem('./testData/dataABGPR.txt'));
+console.log(sinkSystem('./testData/dataABZ.txt'));
+console.log(sinkSystem('./testData/dataAC.txt'));
+console.log(sinkSystem('./testData/dataAG.txt'));
+console.log(sinkSystem('./testData/dataAGM.txt'));
+console.log(sinkSystem('./testData/dataB.txt'));
+console.log(sinkSystem('./testData/dataNoSorce.txt'));
+console.log(sinkSystem('./testData/dataNotConnected.txt'));
