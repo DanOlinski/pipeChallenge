@@ -1,7 +1,11 @@
+//with enter and without enter
 //rewrite function (check if there is anything that can be removed from the getConnected pipe)
 
-//--------------------------
+//check for number or letter or asterisk, then check if the length of the array is 3(if so send that array to the matrix then trigger a recursion)
+//store the processed indexes and trigger the recursion with the next index
 
+//--------------------------
+//this app works with nde v16 or higher
 //the logic of this app consists of 5 steps
 //Step1: determine what the app considers to be a pipe, by storing all options for pipes in the mappedPipes object
 //Step2: determine the coordinates for all of the openings of each pipe. The way this is done is by determining coordinates for each opening of each pipe as if the pipe were located at coordinates 0,0 this information is stored in the mappedPipes object. Next, compare each pipe to the elements passed in through the function argument (named matrix). Finally the coordinates of the pipe opening (located in the mappedPipes) are added to the coordinates of the pipe that is located in the matrix. That way the coordinates of each opening will coincide with the coordinates of any item(from the matrix argument) that is directly next to the pipe opening, making it possible for the app to identify what is connected to the system
@@ -33,30 +37,77 @@ const sinkSystem = (filePath) => {
 
   //convert incoming data into a matrix array data format
   let matrix = [];
+  let test = [];
+  let checkedCount = 0
   const convertRawData = (index, rawData) => {
-    let row = [];
+    let row = []
+    
+ 
 
-    for (let i = index; i < index + 7; i++) {
-      if (rawData[i] === undefined) {
-        matrix.push(row);
-        return;
+    for (let i = index; i < rawData.length; i++) {
+      checkedCount += 1
+      // console.log(i)
+      // console.log(rawData[i])
+      if(checkedCount > rawData.length){
+        return
       }
 
-      const nullData = (rawData[i] === ' ' || rawData[i] === '\n' || rawData[i] === '\r');
-      if (nullData) {
-        //do nothing
-      } else if (Number(rawData[i]) || Number(rawData[i]) === 0) {
-        //if item is a number, convert it from text to number
-        row.push(Number(rawData[i]));
-      } else {
-        row.push(rawData[i]);
+      let letterBoolean = checkIfIconIsALetter(rawData[i])
+      let sourceBoolean = (rawData[i] === '*')
+      let numberBoolean = (Number(rawData[i]) || rawData[i] === '0')
+      let pipeBoolean = false
+
+      for(pipe of Object.keys(mappedPipes)){
+        if(pipe === rawData[i]){
+          pipeBoolean = true
+          // console.log(rawData[i])
+        }
       }
+
+      if(pipeBoolean || letterBoolean || sourceBoolean || numberBoolean){
+        // console.log(rawData[i])
+        // test.push(rawData[i])
+
+        
+
+        if(row.length < 3){
+          if(numberBoolean){
+            row.push(Number(rawData[i]))
+          } else {
+            row.push(rawData[i])
+          }
+        }
+
+        // console.log(row)
+
+        if(row.length === 3){
+            matrix.push(row)
+            convertRawData(checkedCount, rawData)
+        }
+
+      }
+
+      // if (rawData[i] === undefined) {
+      //   matrix.push(row);
+      //   return;
+      // }
+
+      // const nullData = (rawData[i] === ' ' || rawData[i] === '\n' || rawData[i] === '\r');
+      // if (nullData) {
+      //   //do nothing
+      // } else if (Number(rawData[i]) || Number(rawData[i]) === 0) {
+      //   //if item is a number, convert it from text to number
+      //   row.push(Number(rawData[i]));
+      // } else {
+      //   row.push(rawData[i]);
+      // }
+
     }
 
-    matrix.push(row);
-    convertRawData(index + 7, rawData);
+    // matrix.push(row);
+    // convertRawData(index + 7, rawData);
   };
-
+  
   //check if matrix has a starting point by checking if there is an "*"
   const getInitialSource = (matrix) => {
 
@@ -470,7 +521,12 @@ const sinkSystem = (filePath) => {
 
 };
 
-
-
-
-
+console.log(sinkSystem('./testData/dataABG.txt'));
+console.log(sinkSystem('./testData/dataABGPR.txt'));
+// console.log(sinkSystem('./testData/dataABZ.txt'));
+// console.log(sinkSystem('./testData/dataAC.txt'));
+// console.log(sinkSystem('./testData/dataAG.txt'));
+// console.log(sinkSystem('./testData/dataAGM.txt'));
+// console.log(sinkSystem('./testData/dataB.txt'));
+// console.log(sinkSystem('./testData/dataNoSorce.txt'));
+// console.log(sinkSystem('./testData/dataNotConnected.txt'));
