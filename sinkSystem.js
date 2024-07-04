@@ -37,77 +37,45 @@ const sinkSystem = (filePath) => {
 
   //convert incoming data into a matrix array data format
   let matrix = [];
-  let test = [];
-  let checkedCount = 0
+  let checkedCount = 0;
   const convertRawData = (index, rawData) => {
-    let row = []
-    
- 
+    let row = [];
 
     for (let i = index; i < rawData.length; i++) {
-      checkedCount += 1
-      // console.log(i)
-      // console.log(rawData[i])
-      if(checkedCount > rawData.length){
-        return
+      checkedCount += 1;
+      if (checkedCount > rawData.length) {
+        return;
       }
 
-      let letterBoolean = checkIfIconIsALetter(rawData[i])
-      let sourceBoolean = (rawData[i] === '*')
-      let numberBoolean = (Number(rawData[i]) || rawData[i] === '0')
-      let pipeBoolean = false
+      let letterBoolean = checkIfIconIsALetter(rawData[i]);
+      let sourceBoolean = (rawData[i] === '*');
+      let numberBoolean = (Number(rawData[i]) || rawData[i] === '0');
+      let pipeBoolean = false;
 
-      for(pipe of Object.keys(mappedPipes)){
-        if(pipe === rawData[i]){
-          pipeBoolean = true
-          // console.log(rawData[i])
+      for (let pipe of Object.keys(mappedPipes)) {
+        if (pipe === rawData[i]) {
+          pipeBoolean = true;
         }
       }
 
-      if(pipeBoolean || letterBoolean || sourceBoolean || numberBoolean){
-        // console.log(rawData[i])
-        // test.push(rawData[i])
+      if (pipeBoolean || letterBoolean || sourceBoolean || numberBoolean) {
 
-        
-
-        if(row.length < 3){
-          if(numberBoolean){
-            row.push(Number(rawData[i]))
+        if (row.length < 3) {
+          if (numberBoolean) {
+            row.push(Number(rawData[i]));
           } else {
-            row.push(rawData[i])
+            row.push(rawData[i]);
           }
         }
 
-        // console.log(row)
-
-        if(row.length === 3){
-            matrix.push(row)
-            convertRawData(checkedCount, rawData)
+        if (row.length === 3) {
+          matrix.push(row);
+          convertRawData(checkedCount, rawData);
         }
-
       }
-
-      // if (rawData[i] === undefined) {
-      //   matrix.push(row);
-      //   return;
-      // }
-
-      // const nullData = (rawData[i] === ' ' || rawData[i] === '\n' || rawData[i] === '\r');
-      // if (nullData) {
-      //   //do nothing
-      // } else if (Number(rawData[i]) || Number(rawData[i]) === 0) {
-      //   //if item is a number, convert it from text to number
-      //   row.push(Number(rawData[i]));
-      // } else {
-      //   row.push(rawData[i]);
-      // }
-
     }
-
-    // matrix.push(row);
-    // convertRawData(index + 7, rawData);
   };
-  
+
   //check if matrix has a starting point by checking if there is an "*"
   const getInitialSource = (matrix) => {
 
@@ -517,16 +485,4 @@ const sinkSystem = (filePath) => {
     //reorder final answer to alphabetical order
     return finalAnswer.split('').sort().join('');
   }
-
-
 };
-
-console.log(sinkSystem('./testData/dataABG.txt'));
-console.log(sinkSystem('./testData/dataABGPR.txt'));
-// console.log(sinkSystem('./testData/dataABZ.txt'));
-// console.log(sinkSystem('./testData/dataAC.txt'));
-// console.log(sinkSystem('./testData/dataAG.txt'));
-// console.log(sinkSystem('./testData/dataAGM.txt'));
-// console.log(sinkSystem('./testData/dataB.txt'));
-// console.log(sinkSystem('./testData/dataNoSorce.txt'));
-// console.log(sinkSystem('./testData/dataNotConnected.txt'));
