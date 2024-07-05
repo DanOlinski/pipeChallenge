@@ -1,10 +1,11 @@
 //this app works with nde v16 or higher
-//the logic of this app consists of 5 steps
-//Step1: determine what the app considers to be a pipe, by storing all options for pipes in the mappedPipes object
-//Step2: determine the coordinates for all of the openings of each pipe. The way this is done is by determining coordinates for each opening of each pipe as if the pipe were located at coordinates 0,0 this information is stored in the mappedPipes object. Next, compare each pipe to the elements passed in through the function argument (named matrix). Finally the coordinates of the pipe opening (located in the mappedPipes) are added to the coordinates of the pipe that is located in the matrix. That way the coordinates of each opening will coincide with the coordinates of any item(from the matrix argument) that is directly next to the pipe opening, making it possible for the app to identify what is connected to the system
-//Step3: checking the provided matrix for what is connected to the source.
-//trigger a recursion passing in the item that is connected to the source as the current source argument (named sourceInfo in the getConnectedPipe function)
-//Step4: at each recursion of the getConnectedPipe function, when a sink (represented by a letter) is determined to be connected to the pipe system source, add that letter to the final answer
+// the logic of this app consists of 4 steps
+// Step 1: Determine what the app considers to be a pipe, by storing all options for pipes, in the mappedPipes object.
+// Step 2: Determine the coordinates for all openings of each pipe. The way this is done is by determining coordinates for each opening of each pipe as if the pipe were located at coordinates 0,0 this information is stored in the mappedPipes object. Next, compare each pipe to the elements passed in through the function argument (named matrix). Finally, the coordinates of the pipe opening (located in the mappedPipes) are added to the coordinates of the pipe that is located in the matrix. That way the coordinates of each opening will coincide with the coordinates of any item(from the matrix argument) that is directly next to the pipe opening, making it possible for the app to identify what is connected to the system.
+// Step 3: Check the provided matrix for what is connected to the source.
+// Step 4: Trigger a recursion passing in the item that is connected to the source as the current source argument (named sourceInfo in the getConnectedPipe function).
+// Step4: At each recursion of the getConnectedPipe function, when a sink (represented by a letter) is determined to be connected to the pipe system source, add that letter to the final answer.
+
 const sinkSystem = (filePath) => {
   //letters for the final answer will be added to this variable
   let finalAnswer = '';
@@ -29,43 +30,116 @@ const sinkSystem = (filePath) => {
   };
 
   //convert incoming data into a matrix array data format
+  //start w an empty array where the nested arrays will be placed inside
   let matrix = [];
+  //the variable below keeps track of the last index was checked (for rawData)
   let checkedCount = 0;
+  //this is a recursion function that runs for every 3 items (icon, x coordinates, y coordinates), the indext argument is reset at every iteration
+
+  //the row variable needs to be global
+  //each row is to be filled w 3 pieces of data (icon, x coordinates, y coordinates)
+  //when the function checkNextElement is building the multi digit or single digit number, the row array might not be complete yet with the 3 required pieces of data, in that case when a recursion is triggered inside checkNextElement the unfinished row is passed in so that the data is not lost at the recursion
+  let row = [];
+
   const convertRawData = (index, rawData) => {
-    let row = [];
+// console.log(row)
+    //if row array is less than zero resume with code
+    if (row.length < 3) {
 
-    for (let i = index; i < rawData.length; i++) {
-      checkedCount += 1;
-      if (checkedCount > rawData.length) {
-        return;
-      }
+      //loop through rawData starting at the index provided through the index argument
+      for (let i = index; i < rawData.length; i++) {
 
-      let letterBoolean = checkIfIconIsALetter(rawData[i]);
-      let sourceBoolean = (rawData[i] === '*');
-      let numberBoolean = (Number(rawData[i]) || rawData[i] === '0');
-      let pipeBoolean = false;
-
-      for (let pipe of Object.keys(mappedPipes)) {
-        if (pipe === rawData[i]) {
-          pipeBoolean = true;
+        //when the amount of data checked is equal to the length of the content within the data file stop running this function checkNextElement
+        if (checkedCount > rawData.length) {
+          return;
         }
-      }
 
-      if (pipeBoolean || letterBoolean || sourceBoolean || numberBoolean) {
+        //at every iteration of the loop update the value of the checked index item from the rawData
+        checkedCount += 1;
 
-        if (row.length < 3) {
-          if (numberBoolean) {
-            row.push(Number(rawData[i]));
-          } else {
-            row.push(rawData[i]);
+        //the variables below check if an element from the raw data is an expected element type
+        let letterBoolean = checkIfIconIsALetter(rawData[i]);
+        let sourceBoolean = (rawData[i] === '*');
+        let numberBoolean = (Number(rawData[i]) || rawData[i] === '0');
+        let pipeBoolean = false;
+
+        //to check if an element is a pipe there needs to be a loop through the mappedPipes object (this object determines what this app considers to be a pipe)
+        for (let pipe of Object.keys(mappedPipes)) {
+          if (pipe === rawData[i]) {
+            pipeBoolean = true;
           }
         }
 
-        if (row.length === 3) {
-          matrix.push(row);
-          convertRawData(checkedCount, rawData);
+        //check if the item in the current iteration is one of the expected values 
+        if (pipeBoolean || letterBoolean || sourceBoolean || numberBoolean) {
+
+          //each nested array inside the matrix array should only have 3 values, only add values to row array if the length of 3 hasn't been reached yet
+          // if (row.length < 3) {
+
+          //if the item coming in is a number, check if it's a multi digit number, then convert the number from text to number before adding it to the row array
+          if (numberBoolean) {
+
+            //if number is a multi digit number build the multi digit by adding characters to the number variable
+            let number = null;
+
+            //by passing through the conditional above it is determined that the element from rawData is a number so add that number to the number variable
+            number = 0;
+            number += Number(rawData[i]);
+
+            //check if next element is also a number
+            const checkNextElement = () => {
+              //loop through rawData starting at the next item, stop the loop when you find a character that is not a number, this means that the multi digit number is complete
+              for (let j = i + 1; j < rawData.length; j++) {
+
+                //for every iteration add to the checkedCount, so that a recursion of convertRawData function can occur without checking repeated elements from the rawData
+                checkedCount += 1;
+
+                //if next element from rawData is not a number, trigger a recursion with the updated value for the index
+                if (!checkIfItemIsNumber(rawData[j])) {
+
+                  row.push(Number(number));
+                  convertRawData(checkedCount, rawData);
+                  return;
+                  //if the next element is a number place that number next to the previously added number
+                } else {
+                  number += `${Number(rawData[j])}`;
+                }
+              }
+              // row.push(Number(number));
+            };
+
+            //run the function declared above
+            checkNextElement();
+
+            //convert the value un the number array to a number data type, then add the number variable to the row array
+
+
+            row.push(Number(number));
+
+            //if element coming in is not a number, don't attempt to convert it to a number, simply add it to the row array
+          } else {
+            row.push(rawData[i]);
+          }
+
+
+
         }
       }
+
+    }
+
+    //at the very end when the function is triggered to terminate some extra loops still run and it get a bit out of hand, to mitigate this as soon as the row length becomes grater than 0, push the last items into the matrix and terminate the function
+    // if (row.length > 3) {
+      console.log(row)
+      // matrix.push([row[0], row[1], row[2]]);
+      // return;
+    // }
+
+    //when row size gets to 3, push the row array into the matrix array and reset value of row array to empty
+    if (row.length === 3) {
+      matrix.push(row);
+      row = [];
+      convertRawData(checkedCount, rawData);
     }
   };
 
@@ -204,6 +278,22 @@ const sinkSystem = (filePath) => {
     }
 
     //if icon is not a letter return false
+    return false;
+  };
+
+  //returns tru if item is a number and false if item is not a number
+  const checkIfItemIsNumber = (item) => {
+
+    if (Number(item)) {
+      return true;
+    }
+    if (item === '0') {
+      return true;
+    }
+    if (item === ' ') {
+      return false;
+    }
+
     return false;
   };
 
@@ -439,6 +529,8 @@ const sinkSystem = (filePath) => {
   //convert incoming data into a matrix array data format
   convertRawData(0, rawData);
 
+console.log(matrix)
+
   //check if there is a source in the provided matrix characterized by the "*" symbol
   const startingSource = getInitialSource(matrix);
   if (startingSource === 'there is no * in the matrix') {
@@ -480,3 +572,16 @@ const sinkSystem = (filePath) => {
   }
 };
 
+// console.log(sinkSystem('./testData/dataABG.txt'));
+// console.log(sinkSystem('./testData/dataABGPR.txt'));
+// console.log(sinkSystem('./testData/dataABZ.txt'));
+// console.log(sinkSystem('./testData/dataAG.txt'));
+// console.log(sinkSystem('./testData/dataNoSorce.txt'));
+// console.log(sinkSystem('./testData/dataNotConnected.txt'));
+
+// console.log(sinkSystem('./testData/dataAC.txt'));
+// console.log(sinkSystem('./testData/dataAGM.txt'));
+// console.log(sinkSystem('./testData/dataB.txt'));
+
+// console.log(sinkSystem('./testData/coding_qual_input.txt'));
+console.log(sinkSystem('./testData/coding_qual_input_small.txt'));
