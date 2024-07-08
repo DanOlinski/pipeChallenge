@@ -6,6 +6,11 @@
 // Step 4: Trigger a recursion passing in the item that is connected to the source as the current source argument (named sourceInfo in the getConnectedPipe function).
 // Step4: At each recursion of the getConnectedPipe function, when a sink (represented by a letter) is determined to be connected to the pipe system source, add that letter to the final answer.
 
+//possible adjustments in order to improve code efficiency:
+//getInitialSource is looping through the entire matrix array to find the source, this can be found in the convertRawData function
+//the same as above for storing pipeInfo, the function loops through the entire matrix array, and this info can be stored while the convertRawData is running
+//we are currently storing 3 times the amount of raw data (pipeInfo, matrix, matrixObject)
+
 const pipeSystem = (filePath) => {
 
   //letters for the final answer will be added to this variable
@@ -78,6 +83,8 @@ const pipeSystem = (filePath) => {
   };
 
   const convertRawData = (index, rawData) => {
+    let matrixObject = {};
+
     //convert incoming data into a matrix array data format
     //start w an empty array where the nested arrays will be placed inside
     let matrix = [];
@@ -108,6 +115,12 @@ const pipeSystem = (filePath) => {
 
           //when row size gets to 3, push the row array into the matrix array and reset value of row array to empty
           if (row.length === 3) {
+            let coordinatesKey = 'x' + row[1] + 'y' + row[2];
+            let icon = row[0];
+            let index = matrix.length;
+
+            matrixObject[`${coordinatesKey}`] = { icon, index };
+
             matrix.push(row);
             row = [];
           }
@@ -176,12 +189,18 @@ const pipeSystem = (filePath) => {
       }
 
       //after the loop runs the last time the array row will be complete w 3 items, push the last instance of row into the matrix
+      let coordinatesKey = 'x' + row[1] + 'y' + row[2];
+      let icon = row[0];
+      let indexValue = matrix.length;
+
+      matrixObject[`${coordinatesKey}`] = { icon, index: indexValue };
+
       matrix.push(row);
     };
 
     addToRow(index, rawData);
 
-    return matrix;
+    return { matrix: matrix, matrixObject: matrixObject };
   };
 
   //check if matrix has a starting point by checking if there is an "*"
@@ -316,50 +335,56 @@ const pipeSystem = (filePath) => {
       // icon: ,
       // matrixCoordinates:} 
     ];
+    let final = [
+      // {index: ,
+      // icon: ,
+      // matrixCoordinates:} 
+    ];
 
-    const north = [matrix[mainElementIndex][1], matrix[mainElementIndex][2] + 1];
-    const south = [matrix[mainElementIndex][1], matrix[mainElementIndex][2] - 1];
-    const east = [matrix[mainElementIndex][1] + 1, matrix[mainElementIndex][2]];
-    const west = [matrix[mainElementIndex][1] - 1, matrix[mainElementIndex][2]];
+    const northKey = 'x' + matrix[mainElementIndex][1] + 'y' + (matrix[mainElementIndex][2] + 1);
+    const southKey = 'x' + matrix[mainElementIndex][1] + 'y' + matrix[mainElementIndex][2] - 1;
+    const eastKey = 'x' + (matrix[mainElementIndex][1] + 1) + 'y' + matrix[mainElementIndex][2];
+    const westKey = 'x' + (matrix[mainElementIndex][1] - 1) + 'y' + matrix[mainElementIndex][2];
 
-    const adjacentCoordinates = [north, south, east, west];
+    const keyArray = [northKey, southKey, eastKey, westKey];
+    // console.log(matrixObject[`${northKey}`])
+    // console.log(northKey)
 
-    //loop through matrix to find all coordinates adjacent to the mainElement
-    //this first loop goes through all coordinates of elements in the matrix
-    for (let elementIndex = 0; elementIndex < matrix.length; elementIndex++) {
-      const row = matrix[elementIndex];
-      const coordinate = [row[1], row[2]];
+    //this loop goes through all of the coordinates that are adjacent to the mainElement
+    for (let key of keyArray) {
 
-      //this second loop goes through all of the coordinates that are adjacent to the mainElement
-      for (const adjacentOption of adjacentCoordinates) {
+      //if any element in the matrix has coordinates that match one of the coordinate pairs that is adjacent to the source, place that icon in the finalArray
+      if (matrixObject[`${key}`]) {
 
-        //if any element in the matrix has coordinates that match one of the coordinate pairs that is adjacent to the source, place that icon in the finalArray
-        if (compareCoordinates(adjacentOption, coordinate)) {
+        const elementIndex = matrixObject[`${key}`]['index'];
+        const row = matrix[elementIndex];
+        const coordinate = [row[1], row[2]];
 
-          //there might be a case where a sink is connected to another sink, in that case the function getAllConnections will enter a infinite loop, since it will loop for an adjacent sink, find the previous sink it already processed trigger a recursion and find the same adjacent sink infinitely.
-          //to prevent this, the conditional below checks if the previousSource has the same index as an adjacent element and skips adding the info for that element into the finalArray 
-          if (previousSource) {
-            if (previousSource['index'] === elementIndex) {
+        //there might be a case where a sink is connected to another sink, in that case the function getConnectedPipe will enter an infinite loop, since it will loop for an adjacent sink, find the previous sink it already processed trigger a recursion and find the same adjacent sink infinitely.
+        //to prevent this, the conditional below checks if the previousSource has the same index as an adjacent element and skips adding the info for that element into the finalArray 
+        if (previousSource) {
+          if (previousSource['index'] === elementIndex) {
 
-              //skip adding info to the finalArray
-            } else {
-              finalArray.push({
-                index: elementIndex,
-                icon: row[0],
-                matrixCoordinates: coordinate
-              });
-            }
+            //skip adding info to the finalArray
           } else {
-            finalArray.push({
+            final.push({
               index: elementIndex,
-              icon: row[0],
+              icon: matrix[elementIndex][0],
               matrixCoordinates: coordinate
             });
           }
+        } else {
+          finalArray.push({
+            index: elementIndex,
+            icon: matrix[elementIndex][0],
+            matrixCoordinates: coordinate
+          });
         }
       }
     }
-    return finalArray;
+
+    return final;
+
   };
 
   //based on a pipe that is connected to a source of flow, return an array with all openings where the flow exits. 
@@ -395,14 +420,18 @@ const pipeSystem = (filePath) => {
   //check if a given character is a pipe (the object mappedPipes contains a list of characters for what this application considers to be a pipe)
   const checkIfItsAPipe = (icon) => {
 
-    //loop through pipe map, to compare icon with the list of what this app considers to be a pipe
-    for (const pipe in mappedPipes) {
-
-      //check if icon is equal to one of the pipes in the mappedPipes return true
-      if (icon === pipe) {
-        return true;
-      }
+    if (mappedPipes[`${icon}`]) {
+      return true;
     }
+
+    //loop through pipe map, to compare icon with the list of what this app considers to be a pipe
+    // for (const pipe in mappedPipes) {
+
+    //   //check if icon is equal to one of the pipes in the mappedPipes return true
+    //   if (icon === pipe) {
+    //     return true;
+    //   }
+    // }
     return false;
   };
 
@@ -439,44 +468,70 @@ const pipeSystem = (filePath) => {
         ) {
 
           finalAnswer += adjacentElementIcon;
-          getConnectedPipe(matrix, pipeInfo, adjacentElement, sourceInfo);
+          //even though this is a nested loop it is limited to the amount of adjacent objects
+
+          const key = 'index' + adjacentElement['index'];
+
+          //before triggering a recursion make sure item wasn't already checked, if item was checked then the app will continue to run while skipping the checked item
+          if (!checkedItems[`${key}`]) {
+            getConnectedPipe(matrix, pipeInfo, adjacentElement, sourceInfo);
+          }
         }
 
         //if icon adjacent to the source is not a letter, check if it's a pipe
         if (checkIfItsAPipe(adjacentElementIcon)) {
 
-          //loop through pipeInfo in order to compare source coordinates with the coordinates of one of the openings of any pipe inside pipeInfo in order to determine if the adjacent pipe is indeed connected to the source. 
-          for (const pipe in pipeInfo) {
-            let objectLength = Object.keys(pipeInfo[pipe]['openingCoordinatesInMatrix']).length;
-            let opening1 = pipeInfo[pipe]['openingCoordinatesInMatrix']['opening1'];
-            let opening2 = pipeInfo[pipe]['openingCoordinatesInMatrix']['opening2'];
+          //if adjacent icon is a pipe, find all openings of that pipe in order to compare those openings with the coordinates of the source (if the coordinates match that means the adjacent pipe is facing the source)
+          let adjacentPipe = pipeInfo['pipe' + adjacentElement['index']];
+          let objectLength = Object.keys(adjacentPipe['openingCoordinatesInMatrix']).length;
+          let opening1 = adjacentPipe['openingCoordinatesInMatrix']['opening1'];
+          let opening2 = adjacentPipe['openingCoordinatesInMatrix']['opening2'];
 
-            //If there is a pipe with an opening facing the source, trigger a recursion for getConnectedPipe function, to check for any subsequent sink or pipe that might be connected to the pipe that is connected to the source
+          //If there is a pipe with an opening facing the source, trigger a recursion for getConnectedPipe function, to check for any subsequent sink or pipe that might be connected to the pipe that is connected to the source
 
-            //if the pipe found has the same index of the previously processed pipe, skip this pipe in order to avoid processing data that has already been analyzed
-            if (previousSource['index'] === pipeInfo[pipe]['index']) {
-              //do nothing if conditional above is true
+          //if the pipe found has the same index of the previously processed pipe, skip this pipe in order to avoid processing data that has already been analyzed
+          if (previousSource['index'] === adjacentPipe['index']) {
+            //do nothing if conditional above is true
+          }
+
+          else if (compareCoordinates(sourceCoordinates, opening1)) {
+            //even though this is a nested loop it is limited to the amount of adjacent objects
+
+            const key = 'index' + adjacentPipe['index'];
+            //before triggering a recursion make sure item wasn't already checked, if item was checked then the app will continue to run while skipping the checked item
+            if (!checkedItems[`${key}`]) {
+              getConnectedPipe(matrix, pipeInfo, adjacentPipe, sourceInfo);
             }
 
-            else if (compareCoordinates(sourceCoordinates, opening1)) {
-              getConnectedPipe(matrix, pipeInfo, pipeInfo[pipe], sourceInfo);
+          }
+
+          else if (compareCoordinates(sourceCoordinates, opening2)) {
+            //even though this is a nested loop it is limited to the amount of adjacent objects
+
+            const key = 'index' + adjacentPipe['index'];
+            //before triggering a recursion make sure item wasn't already checked, if item was checked then the app will continue to run while skipping the checked item
+            if (!checkedItems[`${key}`]) {
+              getConnectedPipe(matrix, pipeInfo, adjacentPipe, sourceInfo);
             }
 
-            else if (compareCoordinates(sourceCoordinates, opening2)) {
-              getConnectedPipe(matrix, pipeInfo, pipeInfo[pipe], sourceInfo);
-            }
+          }
 
-            //not all pipes have 3 openings, only check if the 3rd opening is connected to the source if there is in fact a 3rd opening in the pipe
-            else if (objectLength === 3) {
-              const opening3 = pipeInfo[pipe]['openingCoordinatesInMatrix']['opening3'];
-              if (compareCoordinates(sourceCoordinates, opening3)) {
+          //not all pipes have 3 openings, only check if the 3rd opening is connected to the source if there is in fact a 3rd opening in the pipe
+          else if (objectLength === 3) {
+            const opening3 = adjacentPipe['openingCoordinatesInMatrix']['opening3'];
+            if (compareCoordinates(sourceCoordinates, opening3)) {
+              //even though this is a nested loop it is limited to the amount of adjacent objects
 
-                getConnectedPipe(matrix, pipeInfo, pipeInfo[pipe], sourceInfo);
+              const key = 'index' + adjacentPipe['index'];
+              //before triggering a recursion make sure item wasn't already checked, if item was checked then the app will continue to run while skipping the checked item
+              if (!checkedItems[`${key}`]) {
+                getConnectedPipe(matrix, pipeInfo, adjacentPipe, sourceInfo);
               }
             }
           }
         }
       }
+      //-------end of loop with nested recursions
     }
 
     //if source is a pipe
@@ -492,36 +547,50 @@ const pipeSystem = (filePath) => {
       //loop through all openings found in outflowArr to check what is located next to each exit opening
       for (let outflow of outflowArr) {
 
-        //loop through matrix to find what is located next to the pipe openings
-        for (let index = 0; index < matrix.length; index++) {
-          const coordinatesOfMatrixItems = [matrix[index][1], matrix[index][2]];
+        const key = 'x' + outflow[0] + 'y' + outflow[1];
 
-          //this conditional checks if there is an item located in front of the pipe opening
-          if (compareCoordinates(outflow, coordinatesOfMatrixItems)) {
-            const adjacentIcon = matrix[index][0];
+        //this conditional checks if there is an item located in front of the pipe opening
+        if (matrixObject[`${key}`]) {
+          let index = matrixObject[`${key}`]['index'];
+          let adjacent = matrix[index];
+          let adjacentIcon = adjacent[0];
 
-            //if what is next to the opening is a letter, add that letter to the final answer and trigger a recursion of getConnectedPipe
+          //if what is next to the opening is a letter, add that letter to the final answer and trigger a recursion of getConnectedPipe
 
-            //here we are also checking if the adjacent element has already ben added to the final answer. At every iteration of this recursion function the index of processed elements are added to an object called checkedItems
-            if (checkIfIconIsALetter(adjacentIcon) && !(checkedItems['index' + `${index}`])) {
-              const adjacentElement = {
-                index: index,
-                icon: adjacentIcon,
-                matrixCoordinates: [matrix[index][1], matrix[index][2]]
-              };
+          //here we are also checking if the adjacent element has already ben added to the final answer. At every iteration of this recursion function the index of processed elements are added to an object called checkedItems
+          if (checkIfIconIsALetter(adjacentIcon) && !(checkedItems['index' + `${index}`])) {
+            const adjacentElement = {
+              index: index,
+              icon: adjacentIcon,
+              matrixCoordinates: [matrix[index][1], matrix[index][2]]
+            };
 
-              finalAnswer += adjacentIcon;
+            finalAnswer += adjacentIcon;
+            //this is a nested loop, the main loop goes through all openings of source pipe
+
+            const key = 'index' + adjacentElement['index'];
+            //before triggering a recursion make sure item wasn't already checked, if item was checked then the app will continue to run while skipping the checked item
+            if (!checkedItems[`${key}`]) {
               getConnectedPipe(matrix, pipeInfo, adjacentElement, sourceInfo);
             }
 
-            //if icon connected to the source pipe is also a pipe run getConnectedPipe function as a recursion, with updated arguments
-            if (checkIfItsAPipe(adjacentIcon)) {
-              const adjacentPipe = pipeInfo['pipe' + index];
+          }
+
+          //if icon connected to the source pipe is also a pipe run getConnectedPipe function as a recursion, with updated arguments
+          if (checkIfItsAPipe(adjacentIcon)) {
+            const adjacentPipe = pipeInfo['pipe' + index];
+
+            //this is a nested loop, the main loop goes through all openings of source pipe
+            const key = 'index' + adjacentPipe['index'];
+            //before triggering a recursion make sure item wasn't already checked, if item was checked then the app will continue to run while skipping the checked item
+            if (!checkedItems[`${key}`]) {
               getConnectedPipe(matrix, pipeInfo, adjacentPipe, sourceInfo);
             }
+
           }
         }
       }
+      //-----end of loop
     }
   };
 
@@ -538,10 +607,8 @@ const pipeSystem = (filePath) => {
     return error;
   }
 
-  //convert incoming data into a matrix array data format
-  const matrix = convertRawData(0, rawData);
-
-  // console.log(matrix)
+  const matrix = convertRawData(0, rawData).matrix;
+  const matrixObject = convertRawData(0, rawData).matrixObject;
 
   //check if there is a source in the provided matrix characterized by the "*" symbol
   const startingSource = getInitialSource(matrix);
@@ -583,17 +650,3 @@ const pipeSystem = (filePath) => {
     return finalAnswer.split('').sort().join('');
   }
 };
-
-// console.log(pipeSystem('./testData/dataABG.txt'));
-// console.log(pipeSystem('./testData/dataABGPR.txt'));
-// console.log(pipeSystem('./testData/dataABZ.txt'));
-// console.log(pipeSystem('./testData/dataAG.txt'));
-// console.log(pipeSystem('./testData/dataNoSorce.txt'));
-// console.log(pipeSystem('./testData/dataNotConnected.txt'));
-
-// console.log(pipeSystem('./testData/dataAC.txt'));
-// console.log(pipeSystem('./testData/dataAGM.txt'));
-// console.log(pipeSystem('./testData/dataB.txt'));
-
-// console.log(pipeSystem('./testData/coding_qual_input.txt'));
-// console.log(pipeSystem('./testData/coding_qual_input_small.txt'));
